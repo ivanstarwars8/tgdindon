@@ -93,8 +93,8 @@ class Database:
             cursor = await db.execute(
                 "SELECT id, user_id, direction, start_time, end_time, price, calendar_event_id, created_at, comment "
                 "FROM bookings "
-                "WHERE datetime(start_time)>=datetime(?) AND datetime(start_time)<=datetime(?) "
-                "ORDER BY datetime(start_time)",
+                "WHERE julianday(start_time)>=julianday(?) AND julianday(start_time)<=julianday(?) "
+                "ORDER BY julianday(start_time)",
                 (now_utc.isoformat(), until_utc.isoformat()),
             )
             rows = await cursor.fetchall()
