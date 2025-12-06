@@ -65,12 +65,15 @@ async def refresh_slots(callback: CallbackQuery, state: FSMContext, bot: Bot) ->
 async def slot_selected(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     config: Config = bot["config"]
     slot_text = callback.data.split(":", maxsplit=1)[1]
-    selected_dt = dt.datetime.strptime(slot_text, "%d.%m %H:%M")
-    # Assume the selected date is in the current year for simplicity
-    now = dt.datetime.now()
     tzinfo = ZoneInfo(config.timezone)
-    selected_dt = selected_dt.replace(year=now.year)
-    start = selected_dt.replace(tzinfo=tzinfo)
+    now = dt.datetime.now(tzinfo)
+    selected_dt = dt.datetime.strptime(slot_text, "%d.%m %H:%M").replace(
+        year=now.year,
+        tzinfo=tzinfo,
+    )
+    if selected_dt < now:
+        selected_dt = selected_dt.replace(year=selected_dt.year + 1)
+    start = selected_dt
     end = start + dt.timedelta(minutes=60)
 
     await state.update_data(slot=start.isoformat(), end=end.isoformat())
