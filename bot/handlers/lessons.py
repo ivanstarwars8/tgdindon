@@ -6,6 +6,7 @@ from bot.config import Config
 from bot.database.queries import Database
 from bot.keyboards.inline import lessons_keyboard
 from bot.utils import google_calendar
+from bot.utils.scheduler import cancel_booking_reminders
 
 router = Router()
 
@@ -33,6 +34,7 @@ async def cancel_lesson(callback: CallbackQuery, bot: Bot) -> None:
     booking_id = int(callback.data.split(":", maxsplit=1)[1])
     db: Database = bot["db"]
     config: Config = bot["config"]
+    scheduler = bot["scheduler"]
     booking = await db.get_booking(booking_id)
     if not booking or booking.user_id != callback.from_user.id:
         await callback.answer("Бронь не найдена")
@@ -40,6 +42,7 @@ async def cancel_lesson(callback: CallbackQuery, bot: Bot) -> None:
 
     service = bot["calendar_service"]
     google_calendar.delete_event(service, config.calendar_id, booking.calendar_event_id)
+    cancel_booking_reminders(scheduler, booking.id)
     await db.delete_booking(booking_id, callback.from_user.id)
     await callback.message.edit_text(f"Запись #{booking_id} отменена")
     await callback.answer("Удалено из календаря")
