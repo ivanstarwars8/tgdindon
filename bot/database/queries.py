@@ -48,8 +48,8 @@ class Database:
                 (
                     user_id,
                     direction,
-                    start_time.isoformat(),
-                    end_time.isoformat(),
+                    start_time.astimezone(timezone.utc).isoformat(),
+                    end_time.astimezone(timezone.utc).isoformat(),
                     price,
                     calendar_event_id,
                     datetime.now(timezone.utc).isoformat(),
@@ -87,6 +87,10 @@ class Database:
             return cursor.rowcount > 0
 
     async def list_upcoming_bookings(self, until: datetime) -> List[Booking]:
+        if until.tzinfo is None:
+            until = until.replace(tzinfo=timezone.utc)
+        else:
+            until = until.astimezone(timezone.utc)
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
                 "SELECT id, user_id, direction, start_time, end_time, price, calendar_event_id, created_at, comment FROM bookings WHERE start_time>=? AND start_time<=? ORDER BY start_time",

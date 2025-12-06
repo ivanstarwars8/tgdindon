@@ -1,3 +1,5 @@
+from zoneinfo import ZoneInfo
+
 from aiogram import Bot, F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
@@ -13,17 +15,19 @@ router = Router()
 @router.message(Command("my_lessons"))
 async def list_lessons(message: Message, bot: Bot) -> None:
     db: Database = bot["db"]
+    config: Config = bot["config"]
     bookings = await db.list_user_bookings(message.from_user.id)
     if not bookings:
         await message.answer("У вас пока нет записей.")
         return
 
+    tzinfo = ZoneInfo(config.timezone)
     lines = [
         "Ваши записи:",
     ]
     for booking in bookings:
         lines.append(
-            f"#{booking.id} • {booking.direction} • {booking.start_time:%d.%m %H:%M}"
+            f"#{booking.id} • {booking.direction} • {booking.start_time.astimezone(tzinfo):%d.%m %H:%M}"
         )
     await message.answer("\n".join(lines), reply_markup=lessons_keyboard([b.id for b in bookings]))
 
