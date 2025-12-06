@@ -85,7 +85,7 @@ async def slot_selected(callback: CallbackQuery, state: FSMContext, bot: Bot) ->
     text = (
         f"Подтвердите запись:\n"
         f"Направление: {direction}\n"
-        f"Дата и время: {start.astimezone().strftime('%d.%m %H:%M')}\n"
+        f"Дата и время: {start.astimezone(tzinfo).strftime('%d.%m %H:%M')}\n"
         f"Стоимость: 2000 ₽ (" + config.payment_note + ")"
     )
     await callback.message.edit_text(text, reply_markup=confirmation_keyboard())
@@ -103,6 +103,7 @@ async def cancel_booking(callback: CallbackQuery, state: FSMContext) -> None:
 async def confirm_booking(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     data = await state.get_data()
     config: Config = bot["config"]
+    tzinfo = ZoneInfo(config.timezone)
     db: Database = bot["db"]
     scheduler = bot["scheduler"]
 
@@ -139,7 +140,7 @@ async def confirm_booking(callback: CallbackQuery, state: FSMContext, bot: Bot) 
         f"Запись подтверждена!\n"
         f"Номер брони: {booking_id}\n"
         f"Направление: {direction}\n"
-        f"Дата и время: {start.astimezone().strftime('%d.%m %H:%M')}\n"
+        f"Дата и время: {start.astimezone(tzinfo).strftime('%d.%m %H:%M')}\n"
         f"Стоимость: 2000 ₽ (" + config.payment_note + ")"
     )
     await callback.message.edit_text(confirmation_text)
