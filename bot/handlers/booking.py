@@ -1,3 +1,4 @@
+import asyncio
 import datetime as dt
 from zoneinfo import ZoneInfo
 
@@ -22,10 +23,11 @@ class BookingForm(StatesGroup):
 
 async def _load_slots(bot: Bot, config: Config):
     service = bot["calendar_service"]
-    slots = google_calendar.get_free_slots(
-        service=service,
-        calendar_id=config.calendar_id,
-        timezone=config.timezone,
+    slots = await asyncio.to_thread(
+        google_calendar.get_free_slots,
+        service,
+        config.calendar_id,
+        config.timezone,
     )
     return slots
 
@@ -111,14 +113,15 @@ async def confirm_booking(callback: CallbackQuery, state: FSMContext, bot: Bot) 
     service = bot["calendar_service"]
     summary = f"Занятие: {direction}"
     description = f"Ученик: @{callback.from_user.username or callback.from_user.id}"
-    event_id = google_calendar.create_event(
-        service=service,
-        calendar_id=config.calendar_id,
-        start=start,
-        end=end,
-        summary=summary,
-        description=description,
-        timezone=config.timezone,
+    event_id = await asyncio.to_thread(
+        google_calendar.create_event,
+        service,
+        config.calendar_id,
+        start,
+        end,
+        summary,
+        description,
+        config.timezone,
     )
 
     booking_id = await db.create_booking(
