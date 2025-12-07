@@ -1,5 +1,3 @@
-"""Точка входа для Telegram-бота."""
-
 import asyncio
 import logging
 
@@ -16,7 +14,6 @@ logging.basicConfig(level=logging.INFO)
 
 
 def register_routers(dp: Dispatcher) -> None:
-    """Подключаем все роутеры, чтобы разделить ответственность по файлам."""
     dp.include_router(start.router)
     dp.include_router(booking.router)
     dp.include_router(lessons.router)
@@ -27,7 +24,6 @@ async def main() -> None:
     bot = Bot(token=config.bot_token, parse_mode="HTML")
     dp = Dispatcher(storage=MemoryStorage())
 
-    # Инициализация инфраструктуры бота: база, Google Calendar, планировщик напоминаний.
     db = Database(config.database_path)
     await db.setup()
 

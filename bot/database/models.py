@@ -1,5 +1,3 @@
-"""Структуры данных для слоя базы."""
-
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
@@ -7,8 +5,6 @@ from typing import Optional
 
 @dataclass
 class Booking:
-    """Представление записи занятия, сохраняемой в SQLite."""
-
     id: int
     user_id: int
     direction: str

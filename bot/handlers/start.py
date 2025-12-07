@@ -1,5 +1,3 @@
-"""Обработчик стартовой команды /start."""
-
 from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
@@ -11,7 +9,6 @@ router = Router()
 
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
-    """Показываем приветствие и кнопки с направлениями."""
     text = (
         "Привет! Я бот для записи на занятия. Выберите направление, чтобы подобрать время."
     )
