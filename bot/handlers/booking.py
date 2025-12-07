@@ -1,4 +1,3 @@
-import asyncio
 import datetime as dt
 from zoneinfo import ZoneInfo
 
@@ -23,11 +22,10 @@ class BookingForm(StatesGroup):
 
 async def _load_slots(bot: Bot, config: Config):
     service = bot["calendar_service"]
-    slots = await asyncio.to_thread(
-        google_calendar.get_free_slots,
-        service,
-        config.calendar_id,
-        config.timezone,
+    slots = google_calendar.get_free_slots(
+        service=service,
+        calendar_id=config.calendar_id,
+        timezone=config.timezone,
     )
     return slots
 
@@ -67,15 +65,12 @@ async def refresh_slots(callback: CallbackQuery, state: FSMContext, bot: Bot) ->
 async def slot_selected(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     config: Config = bot["config"]
     slot_text = callback.data.split(":", maxsplit=1)[1]
+    selected_dt = dt.datetime.strptime(slot_text, "%d.%m %H:%M")
+    # Assume the selected date is in the current year for simplicity
+    now = dt.datetime.now()
     tzinfo = ZoneInfo(config.timezone)
-    now = dt.datetime.now(tzinfo)
-    selected_dt = dt.datetime.strptime(slot_text, "%d.%m %H:%M").replace(
-        year=now.year,
-        tzinfo=tzinfo,
-    )
-    if selected_dt < now:
-        selected_dt = selected_dt.replace(year=selected_dt.year + 1)
-    start = selected_dt
+    selected_dt = selected_dt.replace(year=now.year)
+    start = selected_dt.replace(tzinfo=tzinfo)
     end = start + dt.timedelta(minutes=60)
 
     await state.update_data(slot=start.isoformat(), end=end.isoformat())
@@ -85,7 +80,7 @@ async def slot_selected(callback: CallbackQuery, state: FSMContext, bot: Bot) ->
     text = (
         f"Подтвердите запись:\n"
         f"Направление: {direction}\n"
-        f"Дата и время: {start.astimezone(tzinfo).strftime('%d.%m %H:%M')}\n"
+        f"Дата и время: {start.astimezone().strftime('%d.%m %H:%M')}\n"
         f"Стоимость: 2000 ₽ (" + config.payment_note + ")"
     )
     await callback.message.edit_text(text, reply_markup=confirmation_keyboard())
@@ -103,7 +98,6 @@ async def cancel_booking(callback: CallbackQuery, state: FSMContext) -> None:
 async def confirm_booking(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     data = await state.get_data()
     config: Config = bot["config"]
-    tzinfo = ZoneInfo(config.timezone)
     db: Database = bot["db"]
     scheduler = bot["scheduler"]
 
@@ -114,15 +108,14 @@ async def confirm_booking(callback: CallbackQuery, state: FSMContext, bot: Bot) 
     service = bot["calendar_service"]
     summary = f"Занятие: {direction}"
     description = f"Ученик: @{callback.from_user.username or callback.from_user.id}"
-    event_id = await asyncio.to_thread(
-        google_calendar.create_event,
-        service,
-        config.calendar_id,
-        start,
-        end,
-        summary,
-        description,
-        config.timezone,
+    event_id = google_calendar.create_event(
+        service=service,
+        calendar_id=config.calendar_id,
+        start=start,
+        end=end,
+        summary=summary,
+        description=description,
+        timezone=config.timezone,
     )
 
     booking_id = await db.create_booking(
@@ -140,7 +133,7 @@ async def confirm_booking(callback: CallbackQuery, state: FSMContext, bot: Bot) 
         f"Запись подтверждена!\n"
         f"Номер брони: {booking_id}\n"
         f"Направление: {direction}\n"
-        f"Дата и время: {start.astimezone(tzinfo).strftime('%d.%m %H:%M')}\n"
+        f"Дата и время: {start.astimezone().strftime('%d.%m %H:%M')}\n"
         f"Стоимость: 2000 ₽ (" + config.payment_note + ")"
     )
     await callback.message.edit_text(confirmation_text)

@@ -1,5 +1,5 @@
 import aiosqlite
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Optional
 
 from .models import Booking
@@ -87,15 +87,10 @@ class Database:
             return cursor.rowcount > 0
 
     async def list_upcoming_bookings(self, until: datetime) -> List[Booking]:
-        now_utc = datetime.now(timezone.utc)
-        until_utc = self._ensure_utc(until)
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
-                "SELECT id, user_id, direction, start_time, end_time, price, calendar_event_id, created_at, comment "
-                "FROM bookings "
-                "WHERE julianday(start_time)>=julianday(?) AND julianday(start_time)<=julianday(?) "
-                "ORDER BY julianday(start_time)",
-                (now_utc.isoformat(), until_utc.isoformat()),
+                "SELECT id, user_id, direction, start_time, end_time, price, calendar_event_id, created_at, comment FROM bookings WHERE start_time>=? AND start_time<=? ORDER BY start_time",
+                (datetime.utcnow().isoformat(), until.isoformat()),
             )
             rows = await cursor.fetchall()
         return [self._row_to_booking(row) for row in rows]
@@ -112,9 +107,3 @@ class Database:
             created_at=datetime.fromisoformat(row[7]),
             comment=row[8],
         )
-
-    @staticmethod
-    def _ensure_utc(dt: datetime) -> datetime:
-        if dt.tzinfo is None:
-            return dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(timezone.utc)

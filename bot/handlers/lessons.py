@@ -1,5 +1,3 @@
-import asyncio
-
 from aiogram import Bot, F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
@@ -43,12 +41,7 @@ async def cancel_lesson(callback: CallbackQuery, bot: Bot) -> None:
         return
 
     service = bot["calendar_service"]
-    await asyncio.to_thread(
-        google_calendar.delete_event,
-        service,
-        config.calendar_id,
-        booking.calendar_event_id,
-    )
+    google_calendar.delete_event(service, config.calendar_id, booking.calendar_event_id)
     cancel_booking_reminders(scheduler, booking.id)
     await db.delete_booking(booking_id, callback.from_user.id)
     await callback.message.edit_text(f"Запись #{booking_id} отменена")
