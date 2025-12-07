@@ -1,3 +1,5 @@
+"""Асинхронные запросы к SQLite для хранения броней."""
+
 import aiosqlite
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -7,9 +9,11 @@ from .models import Booking
 
 class Database:
     def __init__(self, path: str):
+        # Путь до файла SQLite; подключение создаётся под каждую операцию.
         self.path = path
 
     async def setup(self) -> None:
+        """Создать таблицу бронирований при первом запуске."""
         async with aiosqlite.connect(self.path) as db:
             await db.execute(
                 """
@@ -38,6 +42,7 @@ class Database:
         calendar_event_id: str,
         comment: Optional[str] = None,
     ) -> int:
+        """Сохранить бронь; все даты принудительно переводятся в UTC."""
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
                 """
@@ -60,6 +65,7 @@ class Database:
             return cursor.lastrowid
 
     async def list_user_bookings(self, user_id: int) -> List[Booking]:
+        """Получить все брони конкретного пользователя."""
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
                 "SELECT id, user_id, direction, start_time, end_time, price, calendar_event_id, created_at, comment FROM bookings WHERE user_id=? ORDER BY start_time",
@@ -69,6 +75,7 @@ class Database:
         return [self._row_to_booking(row) for row in rows]
 
     async def get_booking(self, booking_id: int) -> Optional[Booking]:
+        """Вернуть бронь по идентификатору или None."""
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
                 "SELECT id, user_id, direction, start_time, end_time, price, calendar_event_id, created_at, comment FROM bookings WHERE id=?",
@@ -78,6 +85,7 @@ class Database:
         return self._row_to_booking(row) if row else None
 
     async def delete_booking(self, booking_id: int, user_id: int) -> bool:
+        """Удалить бронь, если она принадлежит пользователю."""
         async with aiosqlite.connect(self.path) as db:
             cursor = await db.execute(
                 "DELETE FROM bookings WHERE id=? AND user_id=?",
@@ -87,6 +95,7 @@ class Database:
             return cursor.rowcount > 0
 
     async def list_upcoming_bookings(self, until: datetime) -> List[Booking]:
+        """Вернуть будущие брони до указанного времени (UTC)."""
         if until.tzinfo is None:
             until = until.replace(tzinfo=timezone.utc)
         else:
@@ -100,6 +109,7 @@ class Database:
         return [self._row_to_booking(row) for row in rows]
 
     def _row_to_booking(self, row) -> Booking:
+        """Преобразовать строку sqlite в dataclass Booking."""
         return Booking(
             id=row[0],
             user_id=row[1],

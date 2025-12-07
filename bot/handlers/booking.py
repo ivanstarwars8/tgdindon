@@ -1,3 +1,5 @@
+"""Хендлеры, отвечающие за процесс бронирования занятия."""
+
 import datetime as dt
 from zoneinfo import ZoneInfo
 
@@ -21,6 +23,7 @@ class BookingForm(StatesGroup):
 
 
 async def _load_slots(bot: Bot, config: Config):
+    """Получить список свободных слотов из Google Calendar."""
     service = bot["calendar_service"]
     slots = await google_calendar.get_free_slots(
         service=service,
@@ -32,6 +35,7 @@ async def _load_slots(bot: Bot, config: Config):
 
 @router.callback_query(F.data.startswith("dir:"))
 async def direction_selected(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    """Пользователь выбрал направление — запрашиваем ближайшие свободные слоты."""
     direction = callback.data.split(":", maxsplit=1)[1]
     await state.update_data(direction=direction)
     config: Config = bot["config"]
@@ -46,6 +50,7 @@ async def direction_selected(callback: CallbackQuery, state: FSMContext, bot: Bo
 
 @router.callback_query(F.data == "slots:refresh")
 async def refresh_slots(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    """Обновить список свободных слотов, не сбрасывая выбор направления."""
     data = await state.get_data()
     direction = data.get("direction", "направление")
     config: Config = bot["config"]
@@ -59,6 +64,7 @@ async def refresh_slots(callback: CallbackQuery, state: FSMContext, bot: Bot) ->
 
 @router.callback_query(BookingForm.slot, F.data.startswith("slot:"))
 async def slot_selected(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    """Пользователь кликнул на слот — переводим в состояние подтверждения."""
     config: Config = bot["config"]
     slot_text = callback.data.split(":", maxsplit=1)[1]
     selected_dt = dt.datetime.fromisoformat(slot_text)
@@ -82,6 +88,7 @@ async def slot_selected(callback: CallbackQuery, state: FSMContext, bot: Bot) ->
 
 @router.callback_query(BookingForm.slot, F.data == "confirm:no")
 async def cancel_booking(callback: CallbackQuery, state: FSMContext) -> None:
+    """Отмена бронирования из шага подтверждения."""
     await state.clear()
     await callback.message.edit_text("Бронирование отменено.", reply_markup=direction_keyboard())
     await callback.answer()
@@ -89,6 +96,7 @@ async def cancel_booking(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.callback_query(BookingForm.slot, F.data == "confirm:yes")
 async def confirm_booking(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    """Финальный шаг: создаём событие в календаре и сохраняем бронь в БД."""
     data = await state.get_data()
     config: Config = bot["config"]
     db: Database = bot["db"]
@@ -101,6 +109,7 @@ async def confirm_booking(callback: CallbackQuery, state: FSMContext, bot: Bot) 
     service = bot["calendar_service"]
     summary = f"Занятие: {direction}"
     description = f"Ученик: @{callback.from_user.username or callback.from_user.id}"
+    # Создание события — вынесено в utils, чтобы можно было заменить реализацию.
     event_id = await google_calendar.create_event(
         service=service,
         calendar_id=config.calendar_id,
@@ -134,6 +143,7 @@ async def confirm_booking(callback: CallbackQuery, state: FSMContext, bot: Bot) 
 
     booking = await db.get_booking(booking_id)
     if booking:
+        # Планируем два напоминания: за сутки и за час до начала.
         schedule_booking_reminders(scheduler, bot, booking, config.timezone)
 
     await callback.answer("Занятие добавлено в календарь")

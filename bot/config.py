@@ -1,3 +1,5 @@
+"""Загрузка конфигурации бота из переменных окружения/.env."""
+
 import os
 from dataclasses import dataclass
 from typing import Optional

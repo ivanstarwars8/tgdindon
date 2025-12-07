@@ -1,3 +1,5 @@
+"""Обёртки над Google Calendar API."""
+
 from __future__ import annotations
 
 import asyncio
@@ -11,6 +13,7 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 
 def build_calendar_service(credentials_file: str):
+    """Создать авторизованный клиент Google Calendar."""
     credentials = service_account.Credentials.from_service_account_file(credentials_file, scopes=SCOPES)
     return build("calendar", "v3", credentials=credentials, cache_discovery=False)
 
@@ -22,7 +25,10 @@ async def get_free_slots(
     days_ahead: int = 7,
     slot_length_minutes: int = 60,
 ) -> List[dt.datetime]:
-    """Fetch free time slots from Google Calendar using the FreeBusy API."""
+    """Получить свободные слоты через FreeBusy API.
+
+    Основная логика выполняется в отдельном потоке, чтобы не блокировать asyncio-цикл.
+    """
 
     def _fetch() -> List[dt.datetime]:
         now = dt.datetime.now(dt.timezone.utc)
@@ -68,6 +74,7 @@ async def create_event(
     description: str,
     timezone: str,
 ) -> str:
+    """Создать событие в календаре, выполняя HTTP-запрос в отдельном потоке."""
     event = {
         "summary": summary,
         "description": description,
@@ -90,4 +97,5 @@ async def create_event(
 
 
 async def delete_event(service, calendar_id: str, event_id: str) -> None:
+    """Удалить событие без блокировки основного цикла."""
     await asyncio.to_thread(service.events().delete(calendarId=calendar_id, eventId=event_id).execute)

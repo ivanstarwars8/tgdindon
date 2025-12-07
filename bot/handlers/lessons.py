@@ -1,3 +1,5 @@
+"""Хендлеры для отображения и отмены записей пользователя."""
+
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot, F, Router
@@ -14,6 +16,7 @@ router = Router()
 
 @router.message(Command("my_lessons"))
 async def list_lessons(message: Message, bot: Bot) -> None:
+    """Вывести пользователю его брони с локализованным временем."""
     db: Database = bot["db"]
     config: Config = bot["config"]
     bookings = await db.list_user_bookings(message.from_user.id)
@@ -34,6 +37,7 @@ async def list_lessons(message: Message, bot: Bot) -> None:
 
 @router.callback_query(F.data.startswith("cancel:"))
 async def cancel_lesson(callback: CallbackQuery, bot: Bot) -> None:
+    """Удалить событие из Google Calendar и базу по запросу пользователя."""
     booking_id = int(callback.data.split(":", maxsplit=1)[1])
     db: Database = bot["db"]
     config: Config = bot["config"]

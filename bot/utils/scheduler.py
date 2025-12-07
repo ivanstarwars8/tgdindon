@@ -1,3 +1,5 @@
+"""Настройка напоминаний о занятиях."""
+
 import datetime as dt
 from zoneinfo import ZoneInfo
 
@@ -9,6 +11,7 @@ from bot.database.models import Booking
 
 
 async def send_reminder(bot: Bot, booking: Booking, before: str) -> None:
+    """Сообщение пользователю за заданное время до занятия."""
     text = (
         f"Напоминание: занятие по {booking.direction} начнётся через {before}.\n"
         f"Начало: {booking.start_time:%d.%m %H:%M}"
@@ -22,6 +25,7 @@ def schedule_booking_reminders(
     booking: Booking,
     timezone: str,
 ) -> None:
+    """Создать два одноразовых задания напоминания (24 часа и 1 час)."""
     tzinfo = ZoneInfo(timezone)
     for minutes_before in (24 * 60, 60):
         remind_at = booking.start_time.astimezone(tzinfo) - dt.timedelta(minutes=minutes_before)
@@ -37,12 +41,14 @@ def schedule_booking_reminders(
 
 
 def build_scheduler(bot: Bot, timezone: str) -> AsyncIOScheduler:
+    """Создать и запустить AsyncIOScheduler с заданной таймзоной."""
     scheduler = AsyncIOScheduler(timezone=ZoneInfo(timezone))
     scheduler.start()
     return scheduler
 
 
 def _format_minutes(minutes: int) -> str:
+    """Удобочитаемое представление количества минут."""
     if minutes >= 60:
         hours = minutes // 60
         return f"{hours} ч" if minutes % 60 == 0 else f"{hours} ч {minutes % 60} мин"

@@ -1,3 +1,5 @@
+"""Inline-клавиатуры, используемые в боте."""
+
 import datetime as dt
 from typing import Iterable, List
 
@@ -6,6 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from zoneinfo import ZoneInfo
 
 
+# Набор направлений, отображаемых на первом экране.
 DIRECTIONS = [
     "Математика",
     "Физика",
@@ -16,6 +19,7 @@ DIRECTIONS = [
 
 
 def direction_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура с направлениями обучения."""
     builder = InlineKeyboardBuilder()
     for direction in DIRECTIONS:
         builder.button(text=direction, callback_data=f"dir:{direction}")
@@ -24,6 +28,7 @@ def direction_keyboard() -> InlineKeyboardMarkup:
 
 
 def slots_keyboard(slots: Iterable[dt.datetime], timezone: str) -> InlineKeyboardMarkup:
+    """Слоты отображаются локализованными метками, а callback хранит ISO-дату."""
     builder = InlineKeyboardBuilder()
     tzinfo = ZoneInfo(timezone)
     for slot in slots:
@@ -35,6 +40,7 @@ def slots_keyboard(slots: Iterable[dt.datetime], timezone: str) -> InlineKeyboar
 
 
 def confirmation_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура подтверждения/отмены перед записью."""
     builder = InlineKeyboardBuilder()
     builder.button(text="Подтвердить", callback_data="confirm:yes")
     builder.button(text="Отмена", callback_data="confirm:no")
@@ -43,6 +49,7 @@ def confirmation_keyboard() -> InlineKeyboardMarkup:
 
 
 def lessons_keyboard(bookings: List[int]) -> InlineKeyboardMarkup:
+    """Список кнопок для отмены конкретных записей пользователя."""
     builder = InlineKeyboardBuilder()
     for booking_id in bookings:
         builder.button(text=f"Отменить #{booking_id}", callback_data=f"cancel:{booking_id}")
